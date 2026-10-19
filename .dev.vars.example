@@ -1,0 +1,18 @@
+# Copy to .dev.vars. Never commit the copied file or real credentials.
+BOOKING_CONFIG_JSON="{\"name\":\"Alex Morgan\",\"firstName\":\"Alex\",\"publicOrigin\":\"http://localhost:5173\"}"
+
+# Add only the integrations you use.
+CALENDAR_TOKEN_KEY=
+CALENDAR_SETUP_KEY=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+MICROSOFT_CLIENT_ID=
+MICROSOFT_CLIENT_SECRET=
+MICROSOFT_EXPECTED_ACCOUNT=
+APPLE_CALDAV_USERNAME=
+APPLE_CALDAV_PASSWORD=
+RESEND_API_KEY=
+NOTIFICATION_FROM=
+NOTIFICATION_TO=
+TURNSTILE_SITE_KEY=
+TURNSTILE_SECRET_KEY=

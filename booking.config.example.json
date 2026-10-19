@@ -1,0 +1,25 @@
+{
+  "name": "Alex Morgan",
+  "firstName": "Alex",
+  "publicOrigin": "https://booking.example.com",
+  "timezone": "Europe/London",
+  "locale": "en-GB",
+  "timezoneLabel": "UK time",
+  "workingDays": [1, 2, 3, 4, 5],
+  "workingHours": { "start": "09:00", "end": "17:00" },
+  "minimumNoticeMinutes": 60,
+  "maximumAdvanceDays": 90,
+  "slotIntervalMinutes": 30,
+  "meetingDurations": [
+    { "minutes": 30, "label": "Quick conversation" },
+    { "minutes": 60, "label": "Longer conversation" }
+  ],
+  "videoProvider": "Google Meet",
+  "appleCalendarNames": ["Personal", "Family"],
+  "rates": { "hourly": "", "professionalDay": "" },
+  "branding": {
+    "avatarUrl": "/profile-placeholder.svg",
+    "socialImageUrl": null,
+    "faviconUrl": "/favicon.svg"
+  }
+}
