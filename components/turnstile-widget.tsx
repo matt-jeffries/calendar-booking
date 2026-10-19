@@ -53,7 +53,7 @@ export default function TurnstileWidget({
   useEffect(() => {
     if (!siteKey || !container.current) {
       setLoading(false);
-      callbacks.current.onError("Security verification is temporarily unavailable. Please try again later.");
+      callbacks.current.onError("The security check is unavailable. Refresh the page and try again.");
       return;
     }
     let disposed = false;
@@ -67,12 +67,12 @@ export default function TurnstileWidget({
         theme: "light",
         callback: (token: string) => { setLoading(false); callbacks.current.onError(""); callbacks.current.onToken(token); },
         "expired-callback": () => { callbacks.current.onToken(""); api.reset(widgetId.current!); },
-        "error-callback": () => { setLoading(false); callbacks.current.onToken(""); callbacks.current.onError("The security check could not complete. Please try it again."); },
+        "error-callback": () => { setLoading(false); callbacks.current.onToken(""); callbacks.current.onError("The security check did not finish. Try again."); },
       });
     }).catch(() => {
       if (!disposed) {
         setLoading(false);
-        callbacks.current.onError("The security check could not load. Please refresh and try again.");
+        callbacks.current.onError("The security check did not load. Refresh the page and try again.");
       }
     });
     return () => {
@@ -92,7 +92,7 @@ export default function TurnstileWidget({
 
   return <div className="turnstile-check" aria-live="polite">
     <div ref={container} />
-    {loading && <span>Checking that you’re human…</span>}
+    {loading && <span>Checking your browser…</span>}
   </div>;
 }
 

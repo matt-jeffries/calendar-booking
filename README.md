@@ -2,9 +2,9 @@
 
 A self-hosted booking page that checks multiple calendars, creates a video meeting, sends calendar invitations, and gives attendees private reschedule and cancellation links.
 
-It is designed for one person to run without an admin dashboard. Configuration lives in one ignored JSON file, credentials stay in Cloudflare secrets, and the public repository contains only safe example values.
+One person can run it without an admin dashboard. Settings live in one ignored JSON file, credentials stay in Cloudflare secrets, and the public repository contains only safe example values.
 
-## What it supports
+## What it does
 
 - 30- and 60-minute booking links, including fixed `/30` and `/60` routes
 - browser-local time display with scheduling rules in your configured timezone
@@ -49,7 +49,7 @@ Never put OAuth secrets, app-specific passwords, encryption keys or API keys int
 
 ## Configuration
 
-The main settings are intentionally small:
+These are the main settings:
 
 | Setting | Purpose |
 | --- | --- |
@@ -78,6 +78,8 @@ npm audit --omit=dev
 ```
 
 See [SECURITY.md](SECURITY.md) for deployment responsibilities and private vulnerability reporting.
+
+Product copy follows the [clear operational language guide](docs/CONTENT_STYLE.md).
 
 ## Licence
 

@@ -42,17 +42,17 @@ async function releaseSlots(bookingId: string, slots: string[]) {
 }
 
 export async function GET(request: Request, context: { params: Promise<{ token: string }> }) {
-  if (!env.DB) return Response.json({ error: "Booking database is unavailable." }, { status: 503 });
+  if (!env.DB) return Response.json({ error: "Bookings are temporarily unavailable. Try again later." }, { status: 503 });
   const limited = await enforceRateLimit(request, "manage-read", 120, 10 * 60);
   if (limited) return limited;
   const booking = await bookingByToken((await context.params).token);
-  if (!booking) return Response.json({ error: "Booking not found." }, { status: 404 });
+  if (!booking) return Response.json({ error: "This booking link is not valid." }, { status: 404 });
   return Response.json({ booking: publicBooking(booking) }, { headers: { "cache-control": "private, no-store" } });
 }
 
 export async function PATCH(request: Request, context: { params: Promise<{ token: string }> }) {
   const bookingConfig = getBookingConfig();
-  if (!env.DB) return Response.json({ error: "Booking database is unavailable." }, { status: 503 });
+  if (!env.DB) return Response.json({ error: "Bookings are temporarily unavailable. Try again later." }, { status: 503 });
   const originError = requireSameOrigin(request);
   if (originError) return originError;
   if (!request.headers.get("content-type")?.toLowerCase().startsWith("application/json")) {
@@ -62,7 +62,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ token
   if (limited) return limited;
   const { token } = await context.params;
   const booking = await bookingByToken(token);
-  if (!booking) return Response.json({ error: "Booking not found." }, { status: 404 });
+  if (!booking) return Response.json({ error: "This booking link is not valid." }, { status: 404 });
 
   let value: unknown;
   try { value = await readJsonBody(request, 2_048); }
@@ -76,7 +76,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ token
   if (action === "reschedule" && startLocal === booking.start_local) return Response.json({ error: "Choose a different meeting time." }, { status: 400 });
   if (booking.status === "cancelled") return Response.json({ booking: publicBooking(booking) });
   const mutationLease = await acquireMutationLock(booking.id);
-  if (!mutationLease) return Response.json({ error: "This booking is already being updated. Please try again shortly." }, { status: 409 });
+  if (!mutationLease) return Response.json({ error: "This meeting is already being updated. Wait a moment and try again." }, { status: 409 });
 
   const manageUrl = `${bookingConfig.publicOrigin}/manage/${token}`;
   try {
@@ -84,7 +84,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ token
       try {
         await cancelMicrosoftMeeting(booking.calendar_event_id);
       } catch {
-        return Response.json({ error: "The calendar could not be updated. Please try again." }, { status: 502 });
+        return Response.json({ error: "We couldn’t update the calendar. Try again." }, { status: 502 });
       }
       let integrationStatus = "connected";
       try { await cancelGoogleMeeting(booking.video_event_id); }
@@ -106,12 +106,12 @@ export async function PATCH(request: Request, context: { params: Promise<{ token
     try {
       const busy = await calendarBusyTimes(ukLocalToUtcIso(startLocal), ukLocalToUtcIso(endLocal), { freshApple: true });
       if (busy.some((item) => (item.provider !== "microsoft" || item.id !== booking.calendar_event_id) && item.start.slice(0, 19) < endLocal && item.end.slice(0, 19) > startLocal)) {
-        return Response.json({ error: "That time has just been taken. Please choose another." }, { status: 409 });
+        return Response.json({ error: "That time has just been taken. Choose another." }, { status: 409 });
       }
     } catch {
-      return Response.json({ error: "Live calendar availability could not be checked. Please try again." }, { status: 503 });
+      return Response.json({ error: "We couldn’t check the calendars. Try again." }, { status: 503 });
     }
-    if (await hasConflict(startLocal, endLocal, booking.id)) return Response.json({ error: "That time has just been taken. Please choose another." }, { status: 409 });
+    if (await hasConflict(startLocal, endLocal, booking.id)) return Response.json({ error: "That time has just been taken. Choose another." }, { status: 409 });
 
     const oldSlots = slotStarts(booking.start_local, booking.end_local);
     const targetSlots = slotStarts(startLocal, endLocal);
@@ -122,7 +122,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ token
       }
     } catch {
       await releaseSlots(booking.id, addedSlots);
-      return Response.json({ error: "That time has just been taken. Please choose another." }, { status: 409 });
+      return Response.json({ error: "That time has just been taken. Choose another." }, { status: 409 });
     }
 
     const updated: BookingRow = { ...booking, start_local: startLocal, end_local: endLocal };
@@ -132,7 +132,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ token
       await updateMicrosoftMeeting(updated, manageUrl);
     } catch {
       await releaseSlots(booking.id, addedSlots);
-      return Response.json({ error: "The calendar could not be updated. Please try again." }, { status: 502 });
+      return Response.json({ error: "We couldn’t update the calendar. Try again." }, { status: 502 });
     }
     try {
       await updateGoogleMeeting(updated, manageUrl);
@@ -152,7 +152,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ token
       try { await updateMicrosoftMeeting(booking, manageUrl); } catch { /* Best-effort compensation. */ }
       if (googleUpdated) { try { await updateGoogleMeeting(booking, manageUrl); } catch { /* Best-effort compensation. */ } }
       await releaseSlots(booking.id, addedSlots);
-      return Response.json({ error: "The booking could not be saved. Please try again." }, { status: 502 });
+      return Response.json({ error: "We couldn’t save the new time. Try again." }, { status: 502 });
     }
     return Response.json({ booking: publicBooking(updated) });
   } finally {

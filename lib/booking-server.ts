@@ -50,8 +50,8 @@ export function validateSlot(startLocal: string, duration: number) {
   const startMinutes = toMinutes(time);
   if (startMinutes < toMinutes(bookingConfig.workingHours.start) || startMinutes + duration > toMinutes(bookingConfig.workingHours.end)) return `Choose a time between ${bookingConfig.workingHours.start} and ${bookingConfig.workingHours.end}.`;
   if ((startMinutes - toMinutes(bookingConfig.workingHours.start)) % bookingConfig.slotIntervalMinutes !== 0) return "Choose one of the available start times.";
-  if (startLocal < addMinutes(londonNowLocal(), bookingConfig.minimumNoticeMinutes)) return `Please choose a time at least ${bookingConfig.minimumNoticeMinutes} minutes from now.`;
-  if (startLocal > addMinutes(londonNowLocal(), bookingConfig.maximumAdvanceDays * 24 * 60)) return `Please choose a time within the next ${bookingConfig.maximumAdvanceDays} days.`;
+  if (startLocal < addMinutes(londonNowLocal(), bookingConfig.minimumNoticeMinutes)) return `Choose a time at least ${bookingConfig.minimumNoticeMinutes} minutes from now.`;
+  if (startLocal > addMinutes(londonNowLocal(), bookingConfig.maximumAdvanceDays * 24 * 60)) return `Choose a time within the next ${bookingConfig.maximumAdvanceDays} days.`;
   return null;
 }
 

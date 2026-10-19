@@ -41,7 +41,7 @@ export async function GET(request: Request) {
     || !bookingConfig.meetingDurations.some((item) => item.minutes === duration)) {
     return Response.json({ error: "Choose a valid availability range." }, { status: 400 });
   }
-  if (!env.DB) return Response.json({ error: "Availability is unavailable." }, { status: 503 });
+  if (!env.DB) return Response.json({ error: "Available times are temporarily unavailable. Try again later." }, { status: 503 });
   const limited = await enforceRateLimit(request, "availability", 30, 10 * 60);
   if (limited) return limited;
   const globallyLimited = await enforceIdentifierRateLimit("availability-global", "all-availability", 300, 10 * 60);
@@ -87,6 +87,6 @@ export async function GET(request: Request) {
     const slots = Object.entries(available).flatMap(([date, times]) => times.map((time) => ({ startUk: `${date}T${time}:00` })));
     return Response.json({ slots }, { headers: { "cache-control": "private, no-store" } });
   } catch {
-    return Response.json({ error: "Live calendar availability is temporarily unavailable." }, { status: 503 });
+    return Response.json({ error: "We couldn’t check the calendars. Try again." }, { status: 503 });
   }
 }

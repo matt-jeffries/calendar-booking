@@ -4,7 +4,7 @@ import "./globals.css";
 
 export function generateMetadata(): Metadata {
   const config = getBookingConfig();
-  const description = `Choose an available meeting time with ${config.name} in your local timezone and receive a ${config.videoProvider} invitation.`;
+  const description = `Choose an available time with ${config.name}. The calendar invitation includes a ${config.videoProvider} link and uses your local time.`;
   const image = config.branding.socialImageUrl ? [{ url: config.branding.socialImageUrl, width: 1200, height: 630, alt: `Book a meeting with ${config.name}` }] : undefined;
   return {
     metadataBase: new URL(config.publicOrigin),

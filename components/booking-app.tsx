@@ -58,7 +58,7 @@ export default function BookingApp({ config, fixedDuration, showRates, turnstile
     fetch(`/api/availability?from=${from}&to=${to}&duration=${duration}`, { signal: controller.signal, cache: "no-store" })
       .then(async (response) => {
         const payload = await response.json() as { slots?: Array<{ startUk: string }>; error?: string };
-        if (!response.ok || !payload.slots) throw new Error(payload.error ?? "Availability could not be loaded.");
+        if (!response.ok || !payload.slots) throw new Error(payload.error ?? "We couldn’t load the available times. Refresh the page and try again.");
         const grouped: Record<string, AvailableSlot[]> = {};
         for (const slot of payload.slots) {
           const instant = ukLocalToDate(slot.startUk);
@@ -95,7 +95,7 @@ export default function BookingApp({ config, fixedDuration, showRates, turnstile
   async function submitBooking(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!displayedDate || !selectedTime || !selectedStartUk) return;
-    if (!turnstileToken) { setError("Please wait for the security check to finish."); return; }
+    if (!turnstileToken) { setError("Wait for the security check to finish."); return; }
     setSubmitting(true); setError("");
     const data = new FormData(event.currentTarget);
     try {
@@ -106,13 +106,13 @@ export default function BookingApp({ config, fixedDuration, showRates, turnstile
       });
       const payload = await response.json() as Result & { error?: string };
       if (!response.ok) {
-        setError(payload.error ?? "The booking could not be created.");
+        setError(payload.error ?? "We couldn’t book the meeting. Try again.");
         setTurnstileResetKey((value) => value + 1);
         return;
       }
       setResult(payload);
     } catch {
-      setError("The booking could not be created. Please check your connection and try again.");
+      setError("We couldn’t book the meeting. Check your connection and try again.");
       setTurnstileResetKey((value) => value + 1);
     } finally {
       setSubmitting(false);
@@ -121,7 +121,7 @@ export default function BookingApp({ config, fixedDuration, showRates, turnstile
 
   return <>
     <main id="top">
-      <section className="hero"><div className="hero-portrait"><img src={config.branding.avatarUrl} alt={config.name} /></div><div className="hero-name">{config.name}</div><div className="eyebrow">Book a meeting with me</div><h1>Let’s find a time<br />that works.</h1><a className="hero-link" href="#booking">View availability <span aria-hidden="true">↓</span></a><div className="hero-orbit orbit-one"></div><div className="hero-orbit orbit-two"></div></section>
+      <section className="hero"><div className="hero-portrait"><img src={config.branding.avatarUrl} alt={config.name} /></div><div className="hero-name">{config.name}</div><div className="eyebrow">Book a meeting with me</div><h1>Choose a time<br />for your meeting.</h1><a className="hero-link" href="#booking">View available times <span aria-hidden="true">↓</span></a><div className="hero-orbit orbit-one"></div><div className="hero-orbit orbit-two"></div></section>
       <section className="booking-shell" id="booking">
         <div className="booking-intro"><div><p className="section-kicker">Book a meeting</p><h2>{fixedDuration ? `Choose a time for a ${fixedDuration}-minute meeting` : "Choose a meeting length"}</h2></div></div>
         {!fixedDuration && <div className="duration-picker" role="radiogroup" aria-label="Meeting length">{config.meetingDurations.map((option) => <button key={option.minutes} className={`duration ${duration === option.minutes ? "active" : ""}`} onClick={() => setDuration(option.minutes)} role="radio" aria-checked={duration === option.minutes}><span className="duration-time">{option.minutes}</span><span className="duration-meta"><strong>minutes</strong><small>{option.label}</small></span><span className="duration-check">✓</span></button>)}</div>}
@@ -130,9 +130,9 @@ export default function BookingApp({ config, fixedDuration, showRates, turnstile
           <div className="slots-panel"><div className="slots-heading"><div><span className="micro-label">Available times</span><h3>{displayedDate ? displayedDate.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "long" }) : "Select a date"}</h3></div><span className="timezone">{zoneLabel}</span></div>{availabilityError ? <p className="slots-empty">{availabilityError}</p> : !availability ? <p className="slots-empty">Checking the calendar…</p> : displayedDate ? <div className="slots-grid">{slots.map(slot => <button className="time-slot" key={slot.startUk} onClick={() => { setSelectedDate(displayedDate); setSelectedTime(slot.label); setSelectedStartUk(slot.startUk); setDialogOpen(true); setResult(null); setError(""); setTurnstileToken(""); setTurnstileError(""); }}>{slot.label}</button>)}</div> : <p className="slots-empty">Choose an available day to see times.</p>}</div>
         </div>
       </section>
-      {showRates && <section className="rates-section"><div className="rates-copy"><p className="section-kicker">For context</p><h2>Professional rates,<br />for reference.</h2><p>If a conversation ever develops into professional work, these are my standard rates.</p></div><div className="rate-list"><div className="rate-row"><span className="rate-index">01</span><div><strong>{config.rates.hourly}</strong><span>per hour</span></div></div><div className="rate-row"><span className="rate-index">02</span><div><strong>{config.rates.professionalDay}</strong><span>per professional day</span></div></div><p className="rate-disclaimer">Booking a meeting does not create a charge or commitment. These rates are shown for information only.</p></div></section>}
+      {showRates && <section className="rates-section"><div className="rates-copy"><p className="section-kicker">Rates</p><h2>Professional rates.</h2><p>These rates apply if we agree paid work after the meeting.</p></div><div className="rate-list"><div className="rate-row"><span className="rate-index">01</span><div><strong>{config.rates.hourly}</strong><span>per hour</span></div></div><div className="rate-row"><span className="rate-index">02</span><div><strong>{config.rates.professionalDay}</strong><span>per professional day</span></div></div><p className="rate-disclaimer">Booking a meeting is free. I will confirm any paid work separately.</p></div></section>}
       <a className={`privacy-link ${showRates ? "" : "rates-hidden"}`} href="/privacy">Privacy</a>
     </main>
-    {dialogOpen && <div className="modal-backdrop" role="presentation"><div className="booking-modal" role="dialog" aria-modal="true" aria-labelledby="booking-title"><button className="dialog-close" onClick={() => setDialogOpen(false)} aria-label="Close">×</button>{!result ? <form onSubmit={submitBooking}><p className="section-kicker">Your details</p><h2 id="booking-title">Nearly there.</h2><div className="booking-summary"><strong>{displayedDate?.toLocaleDateString(config.locale, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</strong><br />{selectedTime} · {duration} minutes · {zoneLabel} · {config.videoProvider}</div><label>Full name<input name="name" autoComplete="name" required placeholder="Your name" /></label><label>Email address<input name="email" type="email" autoComplete="email" required placeholder="you@example.com" /></label><label>What would you like to discuss?<textarea name="context" rows={3} placeholder={`A little context helps ${config.firstName} prepare`}></textarea></label><TurnstileWidget siteKey={turnstileSiteKey} resetKey={turnstileResetKey} onToken={setTurnstileToken} onError={setTurnstileError} />{turnstileError && <p className="form-error">{turnstileError}</p>}{error && <p className="form-error">{error}</p>}<button className="confirm-button" disabled={submitting || !turnstileToken} type="submit">{submitting ? "Saving…" : !turnstileToken ? "Checking browser…" : "Book this meeting"}<span>→</span></button><p className="privacy-prompt">I use these details only to arrange and keep a record of the meeting. <a href="/privacy" target="_blank" rel="noreferrer">Privacy notice</a></p></form> : <div className="success-panel"><span className="success-mark">✓</span><p className="section-kicker">Booked</p><h2 id="booking-title">Your time is reserved.</h2><p>Keep this private link to reschedule or cancel the meeting.</p><a className="manage-link" href={result.manageUrl}>Manage this booking →</a>{result.integrationStatus !== "connected" && <p className="form-note">The calendar invitation is still being confirmed. {config.firstName} has been notified.</p>}</div>}</div></div>}
+    {dialogOpen && <div className="modal-backdrop" role="presentation"><div className="booking-modal" role="dialog" aria-modal="true" aria-labelledby="booking-title"><button className="dialog-close" onClick={() => setDialogOpen(false)} aria-label="Close">×</button>{!result ? <form onSubmit={submitBooking}><p className="section-kicker">Your details</p><h2 id="booking-title">Confirm your meeting.</h2><div className="booking-summary"><strong>{displayedDate?.toLocaleDateString(config.locale, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</strong><br />{selectedTime} · {duration} minutes · {zoneLabel} · {config.videoProvider}</div><label>Full name<input name="name" autoComplete="name" required placeholder="Your name" /></label><label>Email address<input name="email" type="email" autoComplete="email" required placeholder="you@example.com" /></label><label>What would you like to discuss?<textarea name="context" rows={3} placeholder={`Add anything ${config.firstName} should know before the meeting`}></textarea></label><TurnstileWidget siteKey={turnstileSiteKey} resetKey={turnstileResetKey} onToken={setTurnstileToken} onError={setTurnstileError} />{turnstileError && <p className="form-error">{turnstileError}</p>}{error && <p className="form-error">{error}</p>}<button className="confirm-button" disabled={submitting || !turnstileToken} type="submit">{submitting ? "Booking meeting…" : !turnstileToken ? "Checking browser…" : "Book this meeting"}<span>→</span></button><p className="privacy-prompt">I use these details to arrange the meeting and keep a record of it. <a href="/privacy" target="_blank" rel="noreferrer">Read the privacy notice</a></p></form> : <div className="success-panel"><span className="success-mark">✓</span><p className="section-kicker">Meeting booked</p><h2 id="booking-title">Your meeting is booked.</h2><p>Use this private link to reschedule or cancel.</p><a className="manage-link" href={result.manageUrl}>Manage meeting →</a>{result.integrationStatus !== "connected" && <p className="form-note">The calendar invitation is still being created. {config.firstName} has been notified.</p>}</div>}</div></div>}
   </>;
 }

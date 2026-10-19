@@ -17,7 +17,7 @@ export async function GET(request: Request) {
   const state = url.searchParams.get("state");
   const verifier = cookieValue(request, "google_oauth_verifier");
   if (!code || !state || !verifier || state !== cookieValue(request, "google_oauth_state") || !env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) {
-    return oauthError("Google connection could not be verified.", 400);
+    return oauthError("We couldn’t verify the Google connection. Start again.", 400);
   }
   const redirectUri = `${publicOrigin}/api/integrations/google/callback`;
   const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
@@ -34,7 +34,7 @@ export async function GET(request: Request) {
   }
   const profileResponse = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", { headers: { authorization: `Bearer ${tokens.access_token}` } });
   const profile = profileResponse.ok ? await profileResponse.json() as { email?: string } : {};
-  if (!profile.email) return oauthError("The Google account could not be verified.", 403);
+  if (!profile.email) return oauthError("We couldn’t verify the Google account. Start again.", 403);
   const connectedEmail = await calendarConnectionEmail("google");
   if (connectedEmail && connectedEmail.toLowerCase() !== profile.email.toLowerCase()) return oauthError("This is not the Google account already connected to the booking calendar.", 403);
   await saveGoogleConnection(tokens.refresh_token, profile.email, tokens.scope);

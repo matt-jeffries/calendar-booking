@@ -6,5 +6,6 @@ Small, focused pull requests are welcome.
 2. Run `npm ci`, then `npm run check` before opening a pull request.
 3. Add tests for changes to authentication, calendar parsing, booking validation or request handling.
 4. Describe any new environment value in `.dev.vars.example` and the setup documentation.
+5. Follow the [content style guide](docs/CONTENT_STYLE.md) for text shown to users.
 
-Please use a private security report rather than a public issue for vulnerabilities.
+Use a private security report rather than a public issue for vulnerabilities.

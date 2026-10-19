@@ -2,7 +2,7 @@
 
 ## Reporting a vulnerability
 
-Please use GitHub's private vulnerability reporting feature for the repository. Do not include credentials, calendar data, booking links or attendee information in a public issue.
+Use GitHub's private vulnerability reporting feature for the repository. Do not include credentials, calendar data, booking links or attendee information in a public issue.
 
 ## Supported version
 

@@ -20,7 +20,7 @@ async function deleteLocalBooking(bookingId: string) {
 
 export async function POST(request: Request) {
   const bookingConfig = getBookingConfig();
-  if (!env.DB) return Response.json({ error: "Booking database is unavailable." }, { status: 503 });
+  if (!env.DB) return Response.json({ error: "Bookings are temporarily unavailable. Try again later." }, { status: 503 });
   const originError = requireSameOrigin(request);
   if (originError) return originError;
   if (!request.headers.get("content-type")?.toLowerCase().startsWith("application/json")) {
@@ -45,15 +45,15 @@ export async function POST(request: Request) {
   const slotError = validateSlot(startLocal, duration);
   if (slotError) return Response.json({ error: slotError }, { status: 400 });
   const turnstileResult = await verifyTurnstile(request, turnstileToken);
-  if (turnstileResult === "invalid") return Response.json({ error: "Please complete the security check and try again." }, { status: 403 });
-  if (turnstileResult === "unavailable") return Response.json({ error: "Security verification is temporarily unavailable. Please try again." }, { status: 503 });
+  if (turnstileResult === "invalid") return Response.json({ error: "Complete the security check and try again." }, { status: 403 });
+  if (turnstileResult === "unavailable") return Response.json({ error: "The security check is unavailable. Try again later." }, { status: 503 });
   const recipientLimited = await enforceIdentifierRateLimit("booking-recipient", email, 4, 24 * 60 * 60);
   if (recipientLimited) return recipientLimited;
   const globallyLimited = await enforceIdentifierRateLimit("booking-global", "all-bookings", 100, 24 * 60 * 60);
   if (globallyLimited) return globallyLimited;
-  if (!await googleCalendarConfigured()) return Response.json({ error: "Online booking is still being configured. Please check back soon." }, { status: 503 });
+  if (!await googleCalendarConfigured()) return Response.json({ error: "Online booking is not available yet. Try again later." }, { status: 503 });
   const endLocal = addMinutes(startLocal, duration);
-  if (await hasConflict(startLocal, endLocal)) return Response.json({ error: "That time has just been taken. Please choose another." }, { status: 409 });
+  if (await hasConflict(startLocal, endLocal)) return Response.json({ error: "That time has just been taken. Choose another." }, { status: 409 });
 
   const id = crypto.randomUUID();
   const token = `${crypto.randomUUID()}${crypto.randomUUID().replaceAll("-", "")}`;
@@ -65,18 +65,18 @@ export async function POST(request: Request) {
       ...slotStarts(startLocal, endLocal).map((slot) => env.DB.prepare("INSERT INTO booking_slot_locks (slot_start_local, booking_id) VALUES (?1, ?2)").bind(slot, id)),
     ]);
   } catch {
-    return Response.json({ error: "That time has just been taken. Please choose another." }, { status: 409 });
+    return Response.json({ error: "That time has just been taken. Choose another." }, { status: 409 });
   }
 
   try {
     const busy = await calendarBusyTimes(ukLocalToUtcIso(startLocal), ukLocalToUtcIso(endLocal), { freshApple: true });
     if (busy.some((item) => item.start.slice(0, 19) < endLocal && item.end.slice(0, 19) > startLocal)) {
       await deleteLocalBooking(id);
-      return Response.json({ error: "That time has just been taken. Please choose another." }, { status: 409 });
+      return Response.json({ error: "That time has just been taken. Choose another." }, { status: 409 });
     }
   } catch {
     await deleteLocalBooking(id);
-    return Response.json({ error: "Live calendar availability could not be checked. Please try again." }, { status: 503 });
+    return Response.json({ error: "We couldn’t check the calendars. Try again." }, { status: 503 });
   }
 
   const manageUrl = `${bookingConfig.publicOrigin}/manage/${token}`;
@@ -112,7 +112,7 @@ export async function POST(request: Request) {
     if (microsoftEventId) { try { await cancelMicrosoftMeeting(microsoftEventId); } catch { /* Best-effort cleanup. */ } }
     if (googleEventId) { try { await cancelGoogleMeeting(googleEventId); } catch { /* Best-effort cleanup. */ } }
     await deleteLocalBooking(id);
-    return Response.json({ error: "The calendar invitation could not be created. Please try again." }, { status: 502, headers: { "cache-control": "no-store" } });
+    return Response.json({ error: "We couldn’t create the calendar invitation. Try again." }, { status: 502, headers: { "cache-control": "no-store" } });
   }
   try {
     const row = await env.DB.prepare("SELECT * FROM bookings WHERE id = ?1").bind(id).first<BookingRow>();

@@ -17,7 +17,7 @@ export async function GET(request: Request) {
   const code = url.searchParams.get("code");
   const verifier = cookieValue(request, "microsoft_oauth_verifier");
   if (!code || !state || !verifier || state !== cookieValue(request, "microsoft_oauth_state")) {
-    return oauthError("The Microsoft connection could not be verified. Please start again.", 400);
+    return oauthError("We couldn’t verify the Microsoft connection. Start again.", 400);
   }
   if (!env.MICROSOFT_CLIENT_ID || !env.MICROSOFT_CLIENT_SECRET || !expectedAccount) return oauthError("Microsoft is not configured.", 503);
 
@@ -35,7 +35,7 @@ export async function GET(request: Request) {
       code_verifier: verifier,
     }),
   });
-  if (!tokenResponse.ok) return oauthError("Microsoft authentication failed. Please start again.", 502);
+  if (!tokenResponse.ok) return oauthError("Microsoft authentication failed. Start again.", 502);
   const tokens = await tokenResponse.json() as { access_token: string; refresh_token?: string; scope?: string };
   if (!tokens.refresh_token) return oauthError("Microsoft did not provide ongoing calendar access.", 502);
 

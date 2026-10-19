@@ -20,7 +20,7 @@ async function pseudonymousKey(scope: string, bucket: number, identifier: string
 }
 
 async function applyRateLimit(scope: string, identifier: string, limit: number, windowSeconds: number) {
-  if (!env.DB) return Response.json({ error: "This service is temporarily unavailable." }, { status: 503 });
+  if (!env.DB) return Response.json({ error: "This service is unavailable. Try again later." }, { status: 503 });
   const now = Math.floor(Date.now() / 1000);
   const bucket = Math.floor(now / windowSeconds);
   const key = `${scope}:${bucket}:${await pseudonymousKey(scope, bucket, identifier)}`;
@@ -32,7 +32,7 @@ async function applyRateLimit(scope: string, identifier: string, limit: number, 
     .bind(key, (bucket + 1) * windowSeconds).first<{ request_count: number }>();
   if ((result?.request_count ?? limit + 1) <= limit) return null;
   const retryAfter = Math.max(1, (bucket + 1) * windowSeconds - now);
-  return Response.json({ error: "Too many requests. Please wait and try again." }, {
+  return Response.json({ error: "Too many requests. Wait and try again." }, {
     status: 429,
     headers: { "cache-control": "no-store", "retry-after": String(retryAfter) },
   });
