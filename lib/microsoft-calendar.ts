@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { loadCalendarRefreshToken, saveCalendarConnection } from "./calendar-connections";
+import { meetingTitle } from "./meeting-topic";
 
 const provider = "microsoft";
 const tokenEndpoint = "https://login.microsoftonline.com/consumers/oauth2/v2.0/token";
@@ -94,7 +95,7 @@ export async function microsoftBusyTimes(start: string, end: string) {
 function eventBody(booking: import("./booking-server").BookingRow, manageUrl: string, meetingUrl: string) {
   const context = booking.context ? `<p>${booking.context.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")}</p>` : "";
   return {
-    subject: `Meeting with ${booking.name}`,
+    subject: meetingTitle(booking),
     body: {
       contentType: "HTML",
       content: `${context}<p><a href="${meetingUrl}">Join Google Meet</a></p><p><a href="${manageUrl}">Reschedule or cancel this meeting</a></p>`,

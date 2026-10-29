@@ -8,6 +8,7 @@ import { sendNewBookingNotification } from "@/lib/booking-notifications";
 import { enforceIdentifierRateLimit, enforceRateLimit, readJsonBody, requireSameOrigin } from "@/lib/http-security";
 import { ukLocalToUtcIso } from "@/lib/client-time";
 import { verifyTurnstile } from "@/lib/turnstile";
+import { contextWithTopic } from "@/lib/meeting-topic";
 
 async function deleteLocalBooking(bookingId: string) {
   if (!env.DB) return;
@@ -35,13 +36,14 @@ export async function POST(request: Request) {
   const body = value as Record<string, unknown>;
   const name = typeof body.name === "string" ? body.name.trim() : "";
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
-  const context = typeof body.context === "string" ? body.context.trim() : "";
+  const notes = typeof body.context === "string" ? body.context.trim() : "";
   const startLocal = typeof body.startLocal === "string" ? body.startLocal : "";
   const duration = typeof body.duration === "number" ? body.duration : Number.NaN;
   const turnstileToken = body.turnstileToken;
-  if (!name || name.length > 120 || /[\u0000-\u001f\u007f]/.test(name) || !email || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || context.length > 2000 || !startLocal) {
+  if (!name || name.length > 120 || /[\u0000-\u001f\u007f]/.test(name) || !email || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || notes.length > 2000 || !startLocal) {
     return Response.json({ error: "Add a valid name, email and meeting time." }, { status: 400 });
   }
+  const context = contextWithTopic(body.topic, notes);
   const slotError = validateSlot(startLocal, duration);
   if (slotError) return Response.json({ error: slotError }, { status: 400 });
   const turnstileResult = await verifyTurnstile(request, turnstileToken);

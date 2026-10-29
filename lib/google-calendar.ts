@@ -2,6 +2,7 @@ import { env } from "cloudflare:workers";
 import type { BookingRow } from "./booking-server";
 import { calendarConnectionHasScope, loadCalendarRefreshToken, saveCalendarConnection } from "./calendar-connections";
 import { microsoftConfigured } from "./microsoft-calendar";
+import { meetingTitle } from "./meeting-topic";
 
 const provider = "google";
 const calendarEventsScope = "https://www.googleapis.com/auth/calendar.events";
@@ -33,7 +34,7 @@ function sendUpdates() {
 function eventBody(booking: BookingRow, manageUrl: string) {
   if (!googleSendsInvites()) {
     return {
-      summary: `Meeting with ${booking.name}`,
+      summary: meetingTitle(booking),
       description: `Manage, reschedule or cancel this booking: ${manageUrl}`,
       start: { dateTime: booking.start_local, timeZone: booking.timezone },
       end: { dateTime: booking.end_local, timeZone: booking.timezone },
@@ -41,7 +42,7 @@ function eventBody(booking: BookingRow, manageUrl: string) {
   }
   const context = booking.context ? `${booking.context}\n\n` : "";
   return {
-    summary: `Meeting with ${booking.name}`,
+    summary: meetingTitle(booking),
     description: `${context}Reschedule or cancel this meeting: ${manageUrl}`,
     start: { dateTime: booking.start_local, timeZone: booking.timezone },
     end: { dateTime: booking.end_local, timeZone: booking.timezone },
