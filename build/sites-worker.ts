@@ -12,9 +12,20 @@ const securityHeaders: Record<string, string> = {
   "x-frame-options": "DENY",
 };
 
-function secureResponse(request: Request, response: Response) {
+// EMBED_ORIGINS lists sites allowed to show the booking page in an iframe, e.g. "https://mjeffries.com https://www.mjeffries.com".
+function embedOrigins(env?: Cloudflare.Env) {
+  const value = (env as { EMBED_ORIGINS?: string } | undefined)?.EMBED_ORIGINS ?? "";
+  return value.split(/\s+/).filter((origin) => /^https:\/\/[a-z0-9.-]+(:\d+)?$/i.test(origin));
+}
+
+function secureResponse(request: Request, response: Response, env?: Cloudflare.Env) {
   const secured = new Response(response.body, response);
   for (const [name, value] of Object.entries(securityHeaders)) secured.headers.set(name, value);
+  const origins = embedOrigins(env);
+  if (origins.length) {
+    secured.headers.set("content-security-policy", securityHeaders["content-security-policy"].replace("frame-ancestors 'none'", `frame-ancestors 'self' ${origins.join(" ")}`));
+    secured.headers.delete("x-frame-options");
+  }
   const pathname = new URL(request.url).pathname;
   if (pathname.startsWith("/api/") || pathname === "/manage" || pathname.startsWith("/manage/")) {
     secured.headers.set("cache-control", "private, no-store");
@@ -51,6 +62,6 @@ export default {
       };
     }
     const response = await runWithConnectorBinding(binding, () => handler.fetch(request, env, ctx));
-    return secureResponse(request, response);
+    return secureResponse(request, response, env);
   },
 };

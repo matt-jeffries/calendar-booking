@@ -5,7 +5,7 @@ export type BookingRow = {
   id: string; name: string; email: string; context: string;
   start_local: string; end_local: string; timezone: string;
   duration_minutes: number; status: string; calendar_event_id: string | null;
-  video_event_id: string | null;
+  calendar_provider: string; video_event_id: string | null;
   meeting_url: string | null; integration_status: string;
 };
 

@@ -94,8 +94,9 @@ export async function POST(request: Request) {
       .bind(googleEventId, meetingUrl, id).run();
     googlePersisted = true;
     microsoftEventId = await createMicrosoftMeeting(row, manageUrl, meetingUrl);
-    await env.DB.prepare("UPDATE bookings SET calendar_provider = 'microsoft', calendar_event_id = ?1, integration_status = 'connected', updated_at = CURRENT_TIMESTAMP WHERE id = ?2")
-      .bind(microsoftEventId, id).run();
+    // Without Microsoft, the Google event already carries the invitation.
+    await env.DB.prepare("UPDATE bookings SET calendar_provider = ?1, calendar_event_id = ?2, integration_status = 'connected', updated_at = CURRENT_TIMESTAMP WHERE id = ?3")
+      .bind(microsoftEventId ? "microsoft" : "google", microsoftEventId ?? googleEventId, id).run();
   } catch {
     if (googlePersisted && meetingUrl) {
       try {

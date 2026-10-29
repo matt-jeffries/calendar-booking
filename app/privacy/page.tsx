@@ -23,7 +23,7 @@ export default function PrivacyPage() {
       <p>I use this information to check availability, book or change the meeting, send the calendar invitation and keep a record of our correspondence. I rely on my legitimate interests in arranging meetings you request and keeping an appropriate record. If the meeting concerns paid work, I may also use the information to respond to your request before we agree a contract.</p>
 
       <h2>Who processes it</h2>
-      <p>I do not sell your information or use it for marketing. Cloudflare hosts and protects the site and stores the booking. Microsoft and Apple provide calendar availability. Microsoft sends the calendar invitation, Google creates the Meet link and Resend sends booking notifications to me. Cloudflare Turnstile checks for automated bookings.</p>
+      <p>I do not sell your information or use it for marketing. Cloudflare hosts and protects the site and stores the booking. Google Calendar provides availability, sends the calendar invitation and creates the Meet link, and Resend sends booking notifications to me. Cloudflare Turnstile checks for automated bookings.</p>
 
       <h2>How long I keep it</h2>
       <p>I do not delete booking records automatically. I keep them as a record of meetings and correspondence. You can ask me to delete your information unless I need to keep it for a legal, accounting or dispute-related reason.</p>

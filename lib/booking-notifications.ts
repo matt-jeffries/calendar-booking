@@ -19,7 +19,7 @@ export async function sendNewBookingNotification(booking: BookingRow, manageUrl:
   if (!env.RESEND_API_KEY || !notificationSender || !notificationRecipient) return false;
   const context = booking.context ? `<p><strong>Context</strong><br>${escapeHtml(booking.context).replaceAll("\n", "<br>")}</p>` : "";
   const needsAttention = booking.integration_status !== "connected";
-  const attention = needsAttention ? "<p><strong>Action needed:</strong> the time is reserved, but the Microsoft invitation could not be confirmed automatically. Check the calendars and contact the attendee if needed.</p>" : "";
+  const attention = needsAttention ? "<p><strong>Action needed:</strong> the time is reserved, but the calendar invitation could not be confirmed automatically. Check the calendars and contact the attendee if needed.</p>" : "";
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { authorization: `Bearer ${env.RESEND_API_KEY}`, "content-type": "application/json" },

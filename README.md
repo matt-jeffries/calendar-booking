@@ -1,5 +1,7 @@
 # Personal Booking Calendar
 
+> **This fork runs on Google Calendar alone.** Microsoft is optional: leave the `MICROSOFT_*` secrets unset and the app reads availability from your Google Calendar and Google sends the attendee's invitation with the Meet link. Set the Worker variable `EMBED_ORIGINS` (space-separated, e.g. `https://mjeffries.com https://www.mjeffries.com`) to allow those sites to embed the booking page in an iframe.
+
 A self-hosted booking page that checks multiple calendars, creates a video meeting, sends calendar invitations, and gives attendees private reschedule and cancellation links.
 
 One person can run it without an admin dashboard. Settings live in one ignored JSON file, credentials stay in Cloudflare secrets, and the public repository contains only safe example values.

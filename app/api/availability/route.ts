@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { calendarBusyTimes } from "@/lib/calendar-availability";
+import { calendarBusyTimes, isBookingEvent } from "@/lib/calendar-availability";
 import { getBookingConfig } from "@/lib/runtime-config";
 import { addMinutes, bookingByToken, londonNowLocal } from "@/lib/booking-server";
 import { enforceIdentifierRateLimit, enforceRateLimit } from "@/lib/http-security";
@@ -59,7 +59,7 @@ export async function GET(request: Request) {
       env.DB.prepare(`SELECT start_local AS start, end_local AS end FROM bookings WHERE status = 'active' AND start_local < ?1 AND end_local > ?2${excludedBooking ? " AND id <> ?3" : ""}`)
         .bind(rangeEnd, rangeStart, ...(excludedBooking ? [excludedBooking.id] : [])).all<{ start: string; end: string }>(),
     ]);
-    const busy = [...calendarBusy.filter((item) => item.provider !== "microsoft" || item.id !== excludedBooking?.calendar_event_id), ...bookings.results]
+    const busy = [...calendarBusy.filter((item) => !isBookingEvent(item, excludedBooking)), ...bookings.results]
       .map((item) => ({ start: item.start.slice(0, 19), end: item.end.slice(0, 19) }));
     const available: Record<string, string[]> = {};
     const cursor = new Date(`${effectiveFrom}T12:00:00Z`);

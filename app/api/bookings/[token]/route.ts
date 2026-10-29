@@ -2,7 +2,7 @@ import { env } from "cloudflare:workers";
 import { addMinutes, bookingByToken, hasConflict, slotStarts, validateSlot, type BookingRow } from "@/lib/booking-server";
 import { cancelGoogleMeeting, updateGoogleMeeting } from "@/lib/google-calendar";
 import { cancelMicrosoftMeeting, updateMicrosoftMeeting } from "@/lib/microsoft-calendar";
-import { calendarBusyTimes } from "@/lib/calendar-availability";
+import { calendarBusyTimes, isBookingEvent } from "@/lib/calendar-availability";
 import { enforceRateLimit, readJsonBody, requireSameOrigin } from "@/lib/http-security";
 import { ukLocalToUtcIso } from "@/lib/client-time";
 import { getBookingConfig } from "@/lib/runtime-config";
@@ -82,7 +82,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ token
   try {
     if (action === "cancel") {
       try {
-        await cancelMicrosoftMeeting(booking.calendar_event_id);
+        if (booking.calendar_provider === "microsoft") await cancelMicrosoftMeeting(booking.calendar_event_id);
       } catch {
         return Response.json({ error: "We couldn’t update the calendar. Try again." }, { status: 502 });
       }
@@ -105,7 +105,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ token
     const endLocal = addMinutes(startLocal, booking.duration_minutes);
     try {
       const busy = await calendarBusyTimes(ukLocalToUtcIso(startLocal), ukLocalToUtcIso(endLocal), { freshApple: true });
-      if (busy.some((item) => (item.provider !== "microsoft" || item.id !== booking.calendar_event_id) && item.start.slice(0, 19) < endLocal && item.end.slice(0, 19) > startLocal)) {
+      if (busy.some((item) => !isBookingEvent(item, booking) && item.start.slice(0, 19) < endLocal && item.end.slice(0, 19) > startLocal)) {
         return Response.json({ error: "That time has just been taken. Choose another." }, { status: 409 });
       }
     } catch {

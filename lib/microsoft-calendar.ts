@@ -72,6 +72,7 @@ async function microsoftFetch(path: string, init: RequestInit = {}) {
 }
 
 export async function microsoftBusyTimes(start: string, end: string) {
+  if (!microsoftConfigured()) return [];
   const query = new URLSearchParams({
     startDateTime: start,
     endDateTime: end,
@@ -114,6 +115,7 @@ async function graphRequest(path: string, init: RequestInit) {
 }
 
 export async function createMicrosoftMeeting(booking: import("./booking-server").BookingRow, manageUrl: string, meetingUrl: string) {
+  if (!microsoftConfigured()) return null;
   const request = {
     method: "POST",
     body: JSON.stringify({ ...eventBody(booking, manageUrl, meetingUrl), transactionId: booking.id }),
@@ -132,7 +134,7 @@ export async function createMicrosoftMeeting(booking: import("./booking-server")
 }
 
 export async function updateMicrosoftMeeting(booking: import("./booking-server").BookingRow, manageUrl: string) {
-  if (!booking.calendar_event_id || !booking.meeting_url) return;
+  if (booking.calendar_provider !== "microsoft" || !booking.calendar_event_id || !booking.meeting_url) return;
   await graphRequest(`/me/events/${encodeURIComponent(booking.calendar_event_id)}`, {
     method: "PATCH",
     body: JSON.stringify(eventBody(booking, manageUrl, booking.meeting_url)),
@@ -140,7 +142,7 @@ export async function updateMicrosoftMeeting(booking: import("./booking-server")
 }
 
 export async function cancelMicrosoftMeeting(eventId: string | null) {
-  if (!eventId) return;
+  if (!eventId || !microsoftConfigured()) return;
   const response = await microsoftFetch(`/me/events/${encodeURIComponent(eventId)}/cancel`, {
     method: "POST",
     headers: { "content-type": "application/json" },
