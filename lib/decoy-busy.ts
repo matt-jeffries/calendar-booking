@@ -32,12 +32,17 @@ function weekBlocks(monday: Date, share: number) {
   const units = Math.floor((toMinutes(config.workingHours.end) - dayStart) / unit);
   const next = random(hash(`${env.CALENDAR_TOKEN_KEY ?? ""}:decoy:${dayKey(monday)}`));
   const blocks: Array<{ id: string; start: string; end: string }> = [];
-  for (let offset = 0; offset < 7; offset += 1) {
-    const date = new Date(monday);
-    date.setUTCDate(date.getUTCDate() + offset);
-    if (!config.workingDays.includes(date.getUTCDay())) continue;
-    // Each day lands between share-15% and share+15%, and always keeps some free time.
-    const dayShare = Math.min(0.8, Math.max(0, share + (next() - 0.5) * 0.3));
+  const days = Array.from({ length: 7 }, (_, offset) => { const date = new Date(monday); date.setUTCDate(date.getUTCDate() + offset); return date; })
+    .filter((date) => config.workingDays.includes(date.getUTCDay()));
+  // One day a week, sometimes two, is busy enough to show as "Limited"; the rest sit a little under the share to balance it.
+  const heavy = new Set([Math.floor(next() * days.length)]);
+  const second = Math.floor(next() * days.length);
+  if (next() < 0.35 && [...heavy].every((day) => Math.abs(day - second) > 1)) heavy.add(second);
+  for (const [position, date] of days.entries()) {
+    // Normal days land within 15% either side of the share, and always keep some free time.
+    const dayShare = heavy.has(position)
+      ? Math.max(share, 0.62 + next() * 0.1)
+      : Math.min(0.8, Math.max(0, share - 0.05 + (next() - 0.5) * 0.3));
     const target = Math.round(units * dayShare);
     const busy = new Array<boolean>(units).fill(false);
     let covered = 0;
@@ -47,6 +52,10 @@ function weekBlocks(monday: Date, share: number) {
       if (busy.slice(start, start + length).some(Boolean)) continue;
       busy.fill(true, start, start + length);
       covered += length;
+    }
+    // Close leftover gaps by growing existing blocks, so busy days reach their share.
+    for (let index = 0; covered < target && index < units; index += 1) {
+      if (!busy[index] && (busy[index - 1] || busy[index + 1])) { busy[index] = true; covered += 1; }
     }
     const key = dayKey(date);
     for (let index = 0; index < units; index += 1) {

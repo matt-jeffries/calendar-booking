@@ -2,7 +2,7 @@ import { env } from "cloudflare:workers";
 import { addMinutes, bookingByToken, hasConflict, slotStarts, validateSlot, type BookingRow } from "@/lib/booking-server";
 import { cancelGoogleMeeting, updateGoogleMeeting } from "@/lib/google-calendar";
 import { cancelMicrosoftMeeting, updateMicrosoftMeeting } from "@/lib/microsoft-calendar";
-import { calendarBusyTimes, isBookingEvent } from "@/lib/calendar-availability";
+import { blocksSlot, bufferedRange, calendarBusyTimes, isBookingEvent } from "@/lib/calendar-availability";
 import { enforceRateLimit, readJsonBody, requireSameOrigin } from "@/lib/http-security";
 import { ukLocalToUtcIso } from "@/lib/client-time";
 import { getBookingConfig } from "@/lib/runtime-config";
@@ -103,15 +103,16 @@ export async function PATCH(request: Request, context: { params: Promise<{ token
     const validationError = validateSlot(startLocal, booking.duration_minutes);
     if (validationError) return Response.json({ error: validationError }, { status: 400 });
     const endLocal = addMinutes(startLocal, booking.duration_minutes);
+    const checkRange = bufferedRange(startLocal, endLocal);
     try {
-      const busy = await calendarBusyTimes(ukLocalToUtcIso(startLocal), ukLocalToUtcIso(endLocal), { freshApple: true });
-      if (busy.some((item) => !isBookingEvent(item, booking) && item.start.slice(0, 19) < endLocal && item.end.slice(0, 19) > startLocal)) {
+      const busy = await calendarBusyTimes(ukLocalToUtcIso(checkRange.start), ukLocalToUtcIso(checkRange.end), { freshApple: true });
+      if (busy.some((item) => !isBookingEvent(item, booking) && blocksSlot(item, startLocal, endLocal))) {
         return Response.json({ error: "That time has just been taken. Choose another." }, { status: 409 });
       }
     } catch {
       return Response.json({ error: "We couldn’t check the calendars. Try again." }, { status: 503 });
     }
-    if (await hasConflict(startLocal, endLocal, booking.id)) return Response.json({ error: "That time has just been taken. Choose another." }, { status: 409 });
+    if (await hasConflict(checkRange.start, checkRange.end, booking.id)) return Response.json({ error: "That time has just been taken. Choose another." }, { status: 409 });
 
     const oldSlots = slotStarts(booking.start_local, booking.end_local);
     const targetSlots = slotStarts(startLocal, endLocal);

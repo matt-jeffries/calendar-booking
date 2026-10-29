@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { calendarBusyTimes, isBookingEvent } from "@/lib/calendar-availability";
+import { blocksSlot, calendarBusyTimes, isBookingEvent } from "@/lib/calendar-availability";
 import { getBookingConfig } from "@/lib/runtime-config";
 import { addMinutes, bookingByToken, londonNowLocal } from "@/lib/booking-server";
 import { enforceIdentifierRateLimit, enforceRateLimit } from "@/lib/http-security";
@@ -59,8 +59,7 @@ export async function GET(request: Request) {
       env.DB.prepare(`SELECT start_local AS start, end_local AS end FROM bookings WHERE status = 'active' AND start_local < ?1 AND end_local > ?2${excludedBooking ? " AND id <> ?3" : ""}`)
         .bind(rangeEnd, rangeStart, ...(excludedBooking ? [excludedBooking.id] : [])).all<{ start: string; end: string }>(),
     ]);
-    const busy = [...calendarBusy.filter((item) => !isBookingEvent(item, excludedBooking)), ...bookings.results]
-      .map((item) => ({ start: item.start.slice(0, 19), end: item.end.slice(0, 19) }));
+    const busy: Array<{ start: string; end: string; provider?: string }> = [...calendarBusy.filter((item) => !isBookingEvent(item, excludedBooking)), ...bookings.results];
     const available: Record<string, string[]> = {};
     const cursor = new Date(`${effectiveFrom}T12:00:00Z`);
     const final = new Date(`${effectiveTo}T12:00:00Z`);
@@ -77,7 +76,7 @@ export async function GET(request: Request) {
           const startLocal = `${date}T${formatTime(start)}:00`;
           const endLocal = `${date}T${formatTime(start + duration)}:00`;
           if (startLocal >= earliestStart && startLocal <= bookingHorizon
-            && !busy.some((item) => item.start < endLocal && item.end > startLocal)) slots.push(formatTime(start));
+            && !busy.some((item) => blocksSlot(item, startLocal, endLocal))) slots.push(formatTime(start));
         }
       }
       available[date] = slots;

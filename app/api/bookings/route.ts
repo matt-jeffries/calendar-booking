@@ -3,7 +3,7 @@ import { addMinutes, hasConflict, slotStarts, tokenHash, validateSlot, type Book
 import { getBookingConfig } from "@/lib/runtime-config";
 import { cancelGoogleMeeting, createGoogleMeeting, googleCalendarConfigured } from "@/lib/google-calendar";
 import { cancelMicrosoftMeeting, createMicrosoftMeeting } from "@/lib/microsoft-calendar";
-import { calendarBusyTimes } from "@/lib/calendar-availability";
+import { blocksSlot, bufferedRange, calendarBusyTimes } from "@/lib/calendar-availability";
 import { sendNewBookingNotification } from "@/lib/booking-notifications";
 import { enforceIdentifierRateLimit, enforceRateLimit, readJsonBody, requireSameOrigin } from "@/lib/http-security";
 import { ukLocalToUtcIso } from "@/lib/client-time";
@@ -55,7 +55,8 @@ export async function POST(request: Request) {
   if (globallyLimited) return globallyLimited;
   if (!await googleCalendarConfigured()) return Response.json({ error: "Online booking is not available yet. Try again later." }, { status: 503 });
   const endLocal = addMinutes(startLocal, duration);
-  if (await hasConflict(startLocal, endLocal)) return Response.json({ error: "That time has just been taken. Choose another." }, { status: 409 });
+  const checkRange = bufferedRange(startLocal, endLocal);
+  if (await hasConflict(checkRange.start, checkRange.end)) return Response.json({ error: "That time has just been taken. Choose another." }, { status: 409 });
 
   const id = crypto.randomUUID();
   const token = `${crypto.randomUUID()}${crypto.randomUUID().replaceAll("-", "")}`;
@@ -71,8 +72,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    const busy = await calendarBusyTimes(ukLocalToUtcIso(startLocal), ukLocalToUtcIso(endLocal), { freshApple: true });
-    if (busy.some((item) => item.start.slice(0, 19) < endLocal && item.end.slice(0, 19) > startLocal)) {
+    const busy = await calendarBusyTimes(ukLocalToUtcIso(checkRange.start), ukLocalToUtcIso(checkRange.end), { freshApple: true });
+    if (busy.some((item) => blocksSlot(item, startLocal, endLocal))) {
       await deleteLocalBooking(id);
       return Response.json({ error: "That time has just been taken. Choose another." }, { status: 409 });
     }
