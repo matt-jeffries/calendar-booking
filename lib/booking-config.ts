@@ -16,6 +16,8 @@ export type BookingConfig = {
   videoProvider: string;
   appleCalendarNames: string[];
   rates: { hourly: string; professionalDay: string };
+  /** Share of free working time (0 to 0.8) shown as busy, reshuffled weekly. 0 turns it off. */
+  decoyBusyShare: number;
   branding: {
     avatarUrl: string;
     socialImageUrl: string | null;
@@ -70,6 +72,7 @@ export const defaultBookingConfig: BookingConfig = {
   videoProvider: "Google Meet",
   appleCalendarNames: [],
   rates: { hourly: "", professionalDay: "" },
+  decoyBusyShare: 0,
   branding: {
     avatarUrl: "/profile-placeholder.svg",
     socialImageUrl: null,
@@ -165,6 +168,7 @@ export function parseBookingConfig(raw: string | undefined): BookingConfig {
       hourly: rates ? text(rates.hourly, "", 40) : defaultBookingConfig.rates.hourly,
       professionalDay: rates ? text(rates.professionalDay, "", 40) : defaultBookingConfig.rates.professionalDay,
     },
+    decoyBusyShare: typeof input.decoyBusyShare === "number" && Number.isFinite(input.decoyBusyShare) ? Math.min(0.8, Math.max(0, input.decoyBusyShare)) : 0,
     branding: {
       avatarUrl: assetPath(branding?.avatarUrl, defaultBookingConfig.branding.avatarUrl)!,
       socialImageUrl: assetPath(branding?.socialImageUrl, defaultBookingConfig.branding.socialImageUrl),

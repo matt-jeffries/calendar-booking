@@ -2,9 +2,10 @@ import { appleBusyTimes } from "./apple-calendar";
 import type { BookingRow } from "./booking-server";
 import { googleBusyTimes } from "./google-calendar";
 import { microsoftBusyTimes } from "./microsoft-calendar";
+import { decoyBusyTimes } from "./decoy-busy";
 
 export type CalendarBusyTime = {
-  provider: "microsoft" | "google" | "apple";
+  provider: "microsoft" | "google" | "apple" | "decoy";
   id: string;
   start: string;
   end: string;
@@ -20,6 +21,7 @@ export async function calendarBusyTimes(start: string, end: string, options: { f
     ...microsoft.map((item) => ({ ...item, provider: "microsoft" as const })),
     ...google.map((item) => ({ ...item, provider: "google" as const })),
     ...apple.map((item) => ({ ...item, provider: "apple" as const })),
+    ...decoyBusyTimes(start, end).map((item) => ({ ...item, provider: "decoy" as const })),
   ];
 }
 
