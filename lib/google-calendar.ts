@@ -3,6 +3,7 @@ import type { BookingRow } from "./booking-server";
 import { calendarConnectionHasScope, loadCalendarRefreshToken, saveCalendarConnection } from "./calendar-connections";
 import { microsoftConfigured } from "./microsoft-calendar";
 import { meetingTitle } from "./meeting-topic";
+import { sendCalendarConnectionAlert } from "./booking-notifications";
 
 const provider = "google";
 const calendarEventsScope = "https://www.googleapis.com/auth/calendar.events";
@@ -18,7 +19,17 @@ async function accessToken() {
     signal: AbortSignal.timeout(15_000),
     body: new URLSearchParams({ client_id: env.GOOGLE_CLIENT_ID!, client_secret: env.GOOGLE_CLIENT_SECRET!, refresh_token: await loadCalendarRefreshToken(provider), grant_type: "refresh_token" }),
   });
-  if (!response.ok) throw new Error("Google authentication failed");
+  if (!response.ok) {
+    let reason = `HTTP ${response.status}`;
+    try {
+      const body = await response.json() as { error?: string; error_description?: string };
+      if (body.error) reason = `${body.error}${body.error_description ? `: ${body.error_description}` : ""}`;
+    } catch { /* keep the status code */ }
+    console.error(`Google token refresh failed (${reason})`);
+    await sendCalendarConnectionAlert(provider, `Google refused to refresh the calendar sign-in (${reason}).`)
+      .catch((error) => console.error("Calendar alert could not be sent", error));
+    throw new Error(`Google authentication failed (${reason})`);
+  }
   return (await response.json() as { access_token: string }).access_token;
 }
 

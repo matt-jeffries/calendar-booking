@@ -109,7 +109,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ token
       if (busy.some((item) => !isBookingEvent(item, booking) && blocksSlot(item, startLocal, endLocal))) {
         return Response.json({ error: "That time has just been taken. Choose another." }, { status: 409 });
       }
-    } catch {
+    } catch (error) {
+      console.error("Calendar availability check failed", error);
       return Response.json({ error: "We couldn’t check the calendars. Try again." }, { status: 503 });
     }
     if (await hasConflict(checkRange.start, checkRange.end, booking.id)) return Response.json({ error: "That time has just been taken. Choose another." }, { status: 409 });

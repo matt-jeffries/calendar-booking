@@ -85,7 +85,8 @@ export async function GET(request: Request) {
 
     const slots = Object.entries(available).flatMap(([date, times]) => times.map((time) => ({ startUk: `${date}T${time}:00` })));
     return Response.json({ slots }, { headers: { "cache-control": "private, no-store" } });
-  } catch {
+  } catch (error) {
+    console.error("Calendar availability check failed", error);
     return Response.json({ error: "We couldn’t check the calendars. Try again." }, { status: 503 });
   }
 }
