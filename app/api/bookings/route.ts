@@ -77,7 +77,8 @@ export async function POST(request: Request) {
       await deleteLocalBooking(id);
       return Response.json({ error: "That time has just been taken. Choose another." }, { status: 409 });
     }
-  } catch {
+  } catch (error) {
+    console.error("Calendar availability check failed", error);
     await deleteLocalBooking(id);
     return Response.json({ error: "We couldn’t check the calendars. Try again." }, { status: 503 });
   }
